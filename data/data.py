@@ -19,7 +19,13 @@ Paragraph = typing.List[Sentence]
 
 
 class BERTWiki2Dataset(data.Dataset):
-    def __init__(self, data_dir, max_vocab_size, max_seq_len):
+    '''
+    A dataset for generating the data used for the BERT model.
+    Structure heavily based on 
+    https://d2l.ai/chapter_natural-language-processing-pretraining/bert-dataset.html
+    '''
+
+    def __init__(self, data_dir: str, max_vocab_size: int, max_seq_len: int) -> None:
         paragraphs = _read_wikitext_2(data_dir)
         self.max_vocab_size = max_vocab_size
         self.max_seq_len = max_seq_len
@@ -43,7 +49,7 @@ class BERTWiki2Dataset(data.Dataset):
             self.nsp_labels,
         ) = self._pad_bert_inputs(examples)
 
-    def __getitem__(self, idx) -> typing.Tuple:
+    def __getitem__(self, idx: int) -> typing.Tuple:
         return (
             self.all_token_ids[idx],
             self.all_segments[idx],
@@ -54,10 +60,14 @@ class BERTWiki2Dataset(data.Dataset):
             self.nsp_labels[idx],
         )
 
-    def __len__(self):
+    def __len__(self) -> int:
         return len(self.all_token_ids)
 
     def _paragraphs_to_vocab_and_data(self, paragraphs: typing.List[Paragraph]) -> vocab.Vocab:
+        '''
+        Helper function to read in the raw data, tokenize it appropriately, and generate the 
+        Vocab object.
+        '''
         # tokenize paragraphs
         paragraphs_tokenized = [self._tokenize_paragraph(paragraph) for paragraph in paragraphs]
         counter = collections.Counter()
@@ -76,9 +86,16 @@ class BERTWiki2Dataset(data.Dataset):
         )
 
     def _tokenize_paragraph(self, paragraph: Paragraph) -> Paragraph:
+        '''
+        Helper function to tokenize each sentence in a paragraph
+        '''
         return [TOKENIZER.tokenize(sentence) for sentence in paragraph]
 
     def _get_next_sentence_data_from_paragraph(self, paragraph: Paragraph) -> typing.List:
+        '''
+        Helper function to get next sentence
+        Taken from https://d2l.ai/chapter_natural-language-processing-pretraining/bert-dataset.html
+        '''
         next_sentence_data_from_paragraph = []
         for i in range(len(paragraph) - 1):
             tokens_a, tokens_b, is_next = self._get_next_sentence(paragraph[i], paragraph[i + 1])
@@ -92,7 +109,7 @@ class BERTWiki2Dataset(data.Dataset):
 
     def _get_next_sentence(self, sentence: Sentence, next_sentence: Sentence) -> typing.Tuple:
         '''
-        Helper function to return either the next sentence (passed in) or a random sentenc
+        Helper function to return either the next sentence (passed in) or a random sentence
         From https://d2l.ai/chapter_natural-language-processing-pretraining/bert-dataset.html 
         '''
         r = random.random()
@@ -107,6 +124,13 @@ class BERTWiki2Dataset(data.Dataset):
     def _get_masked_language_model_data_from_tokens(
         self, tokens: typing.List[str]
     ) -> typing.Tuple:
+        '''
+        Selects 15% of the tokens for potential replacement.
+        Returns:
+          * The "X"s: the input tokens
+          * pred_positions: the positions in the sequence that we are going to predict
+          * The "Y"s: the labels of the tokens we are going to predict
+        '''
         candidate_pred_positions = []
         for i, token in enumerate(tokens):
             if token in ['<cls>', '<sep>']:
@@ -117,8 +141,9 @@ class BERTWiki2Dataset(data.Dataset):
         mlm_input_tokens, pred_positions_and_labels = self._replace_mask_language_model_tokens(
             tokens, candidate_pred_positions, num_mlm_preds
         )
-        # sort by
+        # sort by the position in the sequence
         pred_positions_and_labels = sorted(pred_positions_and_labels, key=lambda x: x[0])
+
         pred_positions = [v[0] for v in pred_positions_and_labels]
         mlm_pred_labels = [v[1] for v in pred_positions_and_labels]
         return (
@@ -134,9 +159,12 @@ class BERTWiki2Dataset(data.Dataset):
         num_mlm_preds: int,
     ) -> typing.Tuple:
         '''
-        Returns a list of tokens, some of which have now been masked / replaced, along with a list
-        of the indices of the positions that we are going to predict, and the original tokens 
-        associated with those indices
+        Returns:
+          * A list of tokens, some of which have now been masked / replaced. These will be used as
+            inputs to the model
+          * A list of positions we're going to predict
+          * The original tokens from these positions. These will be used as the targets for the 
+            model. 
         '''
         # make a copy to not overwrite original
         mlm_tokens = copy.deepcopy(tokens)
@@ -145,6 +173,7 @@ class BERTWiki2Dataset(data.Dataset):
         # shuffle to ensure random selection of tokens
         random.shuffle(candidate_pred_positions)
         for mlm_pred_position in candidate_pred_positions:
+            # keep going until this condition is met
             if len(pred_positions_and_labels) >= num_mlm_preds:
                 break
             r = random.random()
@@ -161,10 +190,29 @@ class BERTWiki2Dataset(data.Dataset):
         return mlm_tokens, pred_positions_and_labels
 
     def _pick_random_token(self) -> str:
-        # exclude special characters
+        '''
+        Picks a random token from the vocabulary, excluding special characters
+        '''
         return self.vocab.itos[random.randint(4, len(self.vocab) - 1)]
 
     def _pad_bert_inputs(self, examples: typing.List[typing.Tuple]) -> typing.Tuple:
+        '''
+        Each example is:
+          * A list of tokens used as input
+          * The positions to be predicted by the MLM task
+          * A list of tokens used as the target for the MLM task
+          * The segment id flag for those tokens
+          * An "is_next" boolean flag
+        This function returns:
+          * A list of Tensors, all_token_ids
+          * A list of Tensors, all_segments
+          * A list of Tensors, valid_lens - each element here is a zero dimensional Tensor just 
+            containing the length of the tokens
+          * A list of Tensors, all_pred_positions
+          * A list of Tensors, all_mlm_weights (to give zero weight to the padded elements)
+          * A list of Tensors, all_mlm_labels
+          * A list of Tensors, nsp_labels (zero dimensional boolean Tensor)          
+        '''
         max_num_mlm_preds = round(self.max_seq_len * 0.15)
         all_token_ids, all_segments, valid_lens = [], [], []
         all_pred_positions, all_mlm_weights, all_mlm_labels = [], [], []

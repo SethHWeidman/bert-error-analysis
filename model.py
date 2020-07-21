@@ -1,6 +1,4 @@
-
-
-from typing import List, Optional
+import typing
 
 import torch
 from torch import nn
@@ -11,6 +9,7 @@ class BERTEncoder(nn.Module):
     Taken from https://d2l.ai/chapter_natural-language-processing-pretraining/bert.html with 
     minimal modification
     '''
+
     def __init__(
         self,
         vocab_size: int,
@@ -31,7 +30,10 @@ class BERTEncoder(nn.Module):
         self.positional_embedding = nn.Parameter(torch.randn(1, max_len, num_hidden))
 
     def forward(
-        self, tokens: List[str], segments: List[int], mask: Optional[torch.Tensor] = None
+        self,
+        tokens: typing.List[str],
+        segments: typing.List[int],
+        mask: typing.Optional[torch.Tensor] = None,
     ) -> torch.Tensor:
         # Shape of X remains the same throughout this code block:
         # [batch_size, max_sequence_length, num_hiddens]

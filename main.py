@@ -1,4 +1,5 @@
 import os
+import time
 import typing
 
 import torch
@@ -21,6 +22,8 @@ def load_wiki2_data(batch_size: int, max_len: int) -> typing.Tuple:
 
 
 if __name__ == '__main__':
+    print("Starting to run tests")
+    start_time = time.time()
     vocab_size, num_hidden, num_heads, num_hidden_feed_forward = 10000, 768, 2, 1024
     num_layers, dropout = 2, 0.2
     bert_encoder = model.BERTEncoder(
@@ -43,17 +46,26 @@ if __name__ == '__main__':
         valid_lens_X,
         pred_positions_X,
         mlm_weights_X,
-        mlm_Y,
+        mlm_y,
         nsp_y,
     ) in train_iter:
-        print(
+        assert (
             tokens_X.shape,
             segments_X.shape,
             valid_lens_X.shape,
             pred_positions_X.shape,
             mlm_weights_X.shape,
-            mlm_Y.shape,
+            mlm_y.shape,
             nsp_y.shape,
+        ) == (
+            torch.Size([512, 64]),
+            torch.Size([512, 64]),
+            torch.Size([512]),
+            torch.Size([512, 10]),
+            torch.Size([512, 10]),
+            torch.Size([512, 10]),
+            torch.Size([512]),
         )
-        print(len(vocab))
+        assert len(vocab) == 18939
         break
+    print(f"All done! Took {time.time()-start_time:.0f} seconds")
