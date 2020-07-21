@@ -8,7 +8,7 @@ from torch import nn
 
 class BERTEncoder(nn.Module):
     '''
-    Taken fromm https://d2l.ai/chapter_natural-language-processing-pretraining/bert.html with
+    Taken from https://d2l.ai/chapter_natural-language-processing-pretraining/bert.html with 
     minimal modification
     '''
     def __init__(
