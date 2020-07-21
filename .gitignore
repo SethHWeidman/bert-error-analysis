@@ -1,5 +1,19 @@
+# local
 TODO.md
-*.pyc
+
+# formatting
 .flake8
 pyproject.toml
 *.vscode
+
+# python
+*.pyc
+*__pycache__
+
+# Jupyter
+*notebooks
+*nohup.out
+*.ipynb_checkpoints
+
+# data
+wikitext-2* 
