@@ -24,7 +24,7 @@ def load_wiki2_data(batch_size: int, max_len: int) -> typing.Tuple:
 if __name__ == '__main__':
     print("Starting to run tests")
     print()
-    print("Testing model")
+    print("Testing BERTEncoder model")
     start_time = time.time()
     vocab_size, num_hidden, num_heads, num_hidden_feed_forward = 10000, 768, 2, 1024
     num_layers, dropout = 2, 0.2
@@ -38,6 +38,14 @@ if __name__ == '__main__':
 
     encoded = bert_encoder(tokens, segments, None)
     assert encoded.shape == torch.Size([2, 8, 768])
+    print(f"All done! Took {time.time()-start_time:.0f} seconds")
+
+    print("Testing MaskLM model")
+    start_time = time.time()
+    mlm = model.MaskLM(vocab_size, num_hidden)
+    mlm_positions = torch.tensor([[1, 5, 2], [6, 1, 5]])
+    mlm_yhat = mlm(encoded, mlm_positions)
+    assert mlm_yhat.shape == torch.Size([2, 3, 10000])
     print(f"All done! Took {time.time()-start_time:.0f} seconds")
 
     start_time = time.time()
