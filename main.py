@@ -3,6 +3,7 @@ import time
 import typing
 
 import torch
+from torch import nn
 from torch.utils import data as utils_data
 
 import model
@@ -46,6 +47,14 @@ if __name__ == '__main__':
     mlm_positions = torch.tensor([[1, 5, 2], [6, 1, 5]])
     mlm_yhat = mlm(encoded, mlm_positions)
     assert mlm_yhat.shape == torch.Size([2, 3, 10000])
+    print(f"All done! Took {time.time()-start_time:.0f} seconds")
+
+    print("Testing CrossEntropyLoss model")
+    start_time = time.time()
+    loss = nn.CrossEntropyLoss(reduction='none')
+    mlm_y = torch.tensor([[7, 8, 9], [10, 20, 30]])
+    mlm_loss = loss(mlm_yhat.reshape(-1, vocab_size), mlm_y.reshape(-1))
+    assert mlm_loss.shape == torch.Size([6])
     print(f"All done! Took {time.time()-start_time:.0f} seconds")
 
     start_time = time.time()
