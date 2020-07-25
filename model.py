@@ -10,6 +10,43 @@ from torch import nn
 from torch.nn import functional
 
 
+class BERTModel(nn.Module):
+    def __init__(
+        self,
+        vocab_size: int,
+        num_hidden: int,
+        num_heads: int,
+        num_hidden_feed_forward: int,
+        num_layers: int,
+        dropout: float,
+        max_len: int,
+    ):
+        super(BERTModel, self).__init__()
+        self.encoder = BERTEncoder(
+            vocab_size,
+            num_hidden,
+            num_heads,
+            num_hidden_feed_forward,
+            num_layers,
+            dropout,
+            max_len,
+        )
+        self.mlm = MaskLM(vocab_size, num_hidden)
+        self.nsp = NextSentencePred(num_hidden)
+
+    def forward(
+        self,
+        tokens: torch.Tensor,
+        segments: torch.Tensor,
+        valid_lens: typing.Optional[torch.tensor] = None,
+        pred_positions: typing.Optional[torch.tensor] = None,
+    ) -> typing.Tuple:
+        encoded_X = self.encoder(tokens, segments, valid_lens)
+        mlm_yhat = None if pred_positions is not None else self.mlm(encoded_X, pred_positions)
+        nsp_yhat = self.nsp(encoded_X[:, 0, :])
+        return encoded_X, mlm_yhat, nsp_yhat
+
+
 class BERTEncoder(nn.Module):
     def __init__(
         self,
@@ -73,3 +110,13 @@ class MaskLM(nn.Module):
         masked_X = masked_X.reshape(batch_size, num_pred_positions, -1)
 
         return self.dense2(self.layer_norm(functional.relu(self.dense1(masked_X))))
+
+
+class NextSentencePred(nn.Module):
+    def __init__(self, num_hidden: int) -> None:
+        super(NextSentencePred, self).__init__()
+        self.hidden = nn.Linear(num_hidden, num_hidden)
+        self.output = nn.Linear(num_hidden, 2)
+
+    def forward(self, X: torch.Tensor) -> torch.Tensor:
+        return self.output(torch.tanh(self.hidden(X)))

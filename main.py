@@ -49,6 +49,14 @@ if __name__ == '__main__':
     assert mlm_yhat.shape == torch.Size([2, 3, 10000])
     print(f"All done! Took {time.time()-start_time:.0f} seconds")
 
+    print("Testing NextSentencePred model")
+    start_time = time.time()
+    nsp = model.NextSentencePred(num_hidden)
+    # '<cls>' token only
+    nsp_yhat = nsp(encoded[:, 0, :])
+    assert nsp_yhat.shape == torch.Size([2, 2])
+    print(f"All done! Took {time.time()-start_time:.0f} seconds")
+
     print("Testing CrossEntropyLoss model")
     start_time = time.time()
     loss = nn.CrossEntropyLoss(reduction='none')
@@ -90,3 +98,19 @@ if __name__ == '__main__':
         assert len(vocab) == 18939
         break
     print(f"All done! Took {time.time()-start_time:.0f} seconds")
+
+    # Actual BERT paper parameters:
+    # * num_hidden = 768
+    # * num_heads = 12
+    # * num_hidden_feed_forward = 768
+    # * num_layers = 12
+    net = model.BERTModel(
+        len(vocab),
+        num_hidden=128,
+        num_heads=2,
+        num_hidden_feed_forward=256,
+        num_layers=2,
+        dropout=0.2,
+        max_len=max_len,
+    )
+    # TODO: train model
