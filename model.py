@@ -1,5 +1,5 @@
 '''
-All models here taken from https://d2l.ai/chapter_natural-language-processing-pretraining/bert.html 
+All models here taken from https://d2l.ai/chapter_natural-language-processing-pretraining/bert.html
 with minimal modification
 '''
 
@@ -42,7 +42,7 @@ class BERTModel(nn.Module):
         pred_positions: typing.Optional[torch.tensor] = None,
     ) -> typing.Tuple:
         encoded_X = self.encoder(tokens, segments, valid_lens)
-        mlm_yhat = None if pred_positions is not None else self.mlm(encoded_X, pred_positions)
+        mlm_yhat = None if pred_positions is None else self.mlm(encoded_X, pred_positions)
         nsp_yhat = self.nsp(encoded_X[:, 0, :])
         return encoded_X, mlm_yhat, nsp_yhat
 
@@ -65,6 +65,7 @@ class BERTEncoder(nn.Module):
             nn.TransformerEncoderLayer(num_hidden, num_heads, num_hidden_feed_forward, dropout)
             for _ in range(num_layers)
         ]
+        self.max_len = max_len
         self.positional_embedding = nn.Parameter(torch.randn(1, max_len, num_hidden))
 
     def forward(
@@ -76,10 +77,20 @@ class BERTEncoder(nn.Module):
         # Shape of X remains the same throughout this code block:
         # [batch_size, max_sequence_length, num_hiddens]
         X = self.token_embedding(tokens) + self.segment_embedding(segments)
-        X += self.positional_embedding[:, X.shape[1], :]
+
+        X += self.positional_embedding[:, X.shape[1] - 1, :]
+
+        if mask is not None:
+            try:
+                mask = _gen_uint8_tensor_mask_batch(mask, self.max_len)
+            except:
+                import pdb; pdb.set_trace()
         for layer in self.layers:
-            X = layer(X, mask)
-        return X
+            # transpose since the PyTorch layer takes in X sequence_length first
+            X_trans = X.transpose(1, 0)
+            X_trans = layer(X_trans, src_key_padding_mask=mask)
+        # transpose back
+        return X_trans.transpose(1, 0)
 
 
 class MaskLM(nn.Module):
@@ -120,3 +131,16 @@ class NextSentencePred(nn.Module):
 
     def forward(self, X: torch.Tensor) -> torch.Tensor:
         return self.output(torch.tanh(self.hidden(X)))
+
+
+def _gen_uint8_tensor_mask_batch(tensor: torch.Tensor, max_len: int) -> torch.Tensor:
+    return torch.cat([_gen_bool_tensor_mask_obs(el.item(), max_len) for el in tensor])
+
+
+def _gen_bool_tensor_mask_obs(el_length: int, max_len: int) -> torch.Tensor:
+    return torch.cat(
+        [
+            torch.zeros([el_length], dtype=torch.bool),
+            torch.ones([max_len - el_length], dtype=torch.bool)
+        ]
+    ).reshape(1, -1)

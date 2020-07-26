@@ -11,7 +11,7 @@ import transformers
 
 import preprocess
 
-DATA_DIR = os.getcwd()
+DATA_DIR = '/Users/seth/development/bert-error-analysis/data/wikitext-2'
 TOKENIZER = transformers.AutoTokenizer.from_pretrained('bert-base-uncased', unk_token='<unk>')
 
 Sentence = typing.List[str]
@@ -21,7 +21,7 @@ Paragraph = typing.List[Sentence]
 class BERTWiki2Dataset(data.Dataset):
     '''
     A dataset for generating the data used for the BERT model.
-    Structure heavily based on 
+    Structure heavily based on
     https://d2l.ai/chapter_natural-language-processing-pretraining/bert-dataset.html
     '''
 
@@ -65,7 +65,7 @@ class BERTWiki2Dataset(data.Dataset):
 
     def _paragraphs_to_vocab_and_data(self, paragraphs: typing.List[Paragraph]) -> vocab.Vocab:
         '''
-        Helper function to read in the raw data, tokenize it appropriately, and generate the 
+        Helper function to read in the raw data, tokenize it appropriately, and generate the
         Vocab object.
         '''
         # tokenize paragraphs
@@ -163,7 +163,7 @@ class BERTWiki2Dataset(data.Dataset):
           * A list of tokens, some of which have now been masked / replaced. These will be used as
             inputs to the model
           * A list of positions we're going to predict
-          * The original tokens from these positions. These will be used as the targets for the 
+          * The original tokens from these positions. These will be used as the targets for the
             model. 
         '''
         # make a copy to not overwrite original
@@ -206,12 +206,12 @@ class BERTWiki2Dataset(data.Dataset):
         This function returns:
           * A list of Tensors, all_token_ids
           * A list of Tensors, all_segments
-          * A list of Tensors, valid_lens - each element here is a zero dimensional Tensor just 
+          * A list of Tensors, valid_lens - each element here is a zero dimensional Tensor just
             containing the length of the tokens
           * A list of Tensors, all_pred_positions
           * A list of Tensors, all_mlm_weights (to give zero weight to the padded elements)
           * A list of Tensors, all_mlm_labels
-          * A list of Tensors, nsp_labels (zero dimensional boolean Tensor)          
+          * A list of Tensors, nsp_labels (zero dimensional boolean Tensor)
         '''
         max_num_mlm_preds = round(self.max_seq_len * 0.15)
         all_token_ids, all_segments, valid_lens = [], [], []
@@ -239,7 +239,7 @@ class BERTWiki2Dataset(data.Dataset):
                     mlm_pred_label_ids + [0] * (max_num_mlm_preds - num_mlm_pred_label_ids)
                 )
             )
-            nsp_labels.append(torch.tensor(is_next))
+            nsp_labels.append(torch.tensor(is_next, dtype=torch.int64))
         return (
             all_token_ids,
             all_segments,
@@ -266,3 +266,10 @@ def _read_wikitext_2(data_dir: str) -> typing.List[Paragraph]:
     ]
     random.shuffle(paragraphs)
     return paragraphs
+
+
+def load_wiki2_data(batch_size: int, max_len: int) -> typing.Tuple:
+    dataset = BERTWiki2Dataset(DATA_DIR, 50000, max_len)
+    # https://pytorch.org/docs/stable/data.html
+    train_iter = data.DataLoader(dataset, batch_size=batch_size)
+    return train_iter, dataset.vocab
