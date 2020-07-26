@@ -81,10 +81,7 @@ class BERTEncoder(nn.Module):
         X += self.positional_embedding[:, X.shape[1] - 1, :]
 
         if mask is not None:
-            try:
-                mask = _gen_uint8_tensor_mask_batch(mask, self.max_len)
-            except:
-                import pdb; pdb.set_trace()
+            mask = _gen_uint8_tensor_mask_batch(mask, self.max_len)
         for layer in self.layers:
             # transpose since the PyTorch layer takes in X sequence_length first
             X_trans = X.transpose(1, 0)
@@ -141,6 +138,6 @@ def _gen_bool_tensor_mask_obs(el_length: int, max_len: int) -> torch.Tensor:
     return torch.cat(
         [
             torch.zeros([el_length], dtype=torch.bool),
-            torch.ones([max_len - el_length], dtype=torch.bool)
+            torch.ones([max_len - el_length], dtype=torch.bool),
         ]
     ).reshape(1, -1)

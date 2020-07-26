@@ -17,3 +17,6 @@ pyproject.toml
 
 # data
 wikitext-2* 
+
+# logs
+log* 

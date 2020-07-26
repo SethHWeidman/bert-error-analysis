@@ -1,3 +1,7 @@
+import datetime
+import pickle
+import os
+import time
 import typing
 
 import torch
@@ -7,6 +11,8 @@ from torch import optim
 from torchtext import vocab
 
 import model
+
+BASE_LOG_PATH = '/Users/seth/development/bert-error-analysis/log'
 
 
 class BERTTrainer(object):
@@ -26,7 +32,11 @@ class BERTTrainer(object):
         self.loss = nn.CrossEntropyLoss()
 
     def train_epochs(self, epochs: int):
+        log_folder = self.setup_logging()
+
         epoch = 0
+        batch_losses_mlm = []
+        batch_losses_nsp = []
         while epoch <= epochs:
             for (
                 tokens_X,
@@ -37,6 +47,7 @@ class BERTTrainer(object):
                 mlm_y,
                 nsp_y,
             ) in self.dataloader:
+                batch_start_time = time.time()
                 self.optimizer.zero_grad()
                 mlm_loss, nsp_loss = self._get_batch_loss_bert(
                     tokens_X,
@@ -47,13 +58,26 @@ class BERTTrainer(object):
                     mlm_y,
                     nsp_y,
                 )
-                print("MLM loss for batch", mlm_loss.item())
-                print("MLM loss for batch", nsp_loss.item())
+                batch_losses_mlm.append(mlm_loss.item())
+                batch_losses_nsp.append(nsp_loss.item())
+                pickle.dump(
+                    batch_losses_mlm, open(os.path.join(log_folder, 'batch_losses_mlm.p'), 'wb')
+                )
+                pickle.dump(
+                    batch_losses_nsp, open(os.path.join(log_folder, 'batch_losses_nsp.p'), 'wb')
+                )
                 total_loss = mlm_loss + nsp_loss
                 total_loss.backward()
                 self.optimizer.step()
+                print(f"Batch took {time.time()-batch_start_time:.1f} seconds")
 
             epochs += 1
+
+    def setup_logging(self) -> str:
+        now_str = str(datetime.datetime.now())
+        log_folder = os.path.join(BASE_LOG_PATH, now_str)
+        os.mkdir(log_folder)
+        return log_folder
 
     def _get_batch_loss_bert(
         self,
