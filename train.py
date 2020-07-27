@@ -38,6 +38,7 @@ class BERTTrainer(object):
         batch_losses_mlm = []
         batch_losses_nsp = []
         while epoch <= epochs:
+            epoch_start_time = time.time()
             for (
                 tokens_X,
                 segments_X,
@@ -47,7 +48,6 @@ class BERTTrainer(object):
                 mlm_y,
                 nsp_y,
             ) in self.dataloader:
-                batch_start_time = time.time()
                 self.optimizer.zero_grad()
                 mlm_loss, nsp_loss = self._get_batch_loss_bert(
                     tokens_X,
@@ -69,9 +69,8 @@ class BERTTrainer(object):
                 total_loss = mlm_loss + nsp_loss
                 total_loss.backward()
                 self.optimizer.step()
-                print(f"Batch took {time.time()-batch_start_time:.1f} seconds")
-
-            epochs += 1
+            print(f"Epoch took {time.time()-epoch_start_time:.1f} seconds")
+            epoch += 1
 
     def setup_logging(self) -> str:
         now_str = str(datetime.datetime.now())
@@ -100,7 +99,7 @@ class BERTTrainer(object):
         mlm_yhat_preds = mlm_yhat_reshaped * pred_positions_reshaped
 
         mlm_loss = self.loss(mlm_yhat_preds, mlm_y.reshape(-1))
-        mlm_loss_final = mlm_loss.sum() / (mlm_weights_X.sum() + 1e-8)
+        mlm_loss_final = mlm_loss.sum()
 
         nsp_loss = self.loss(nsp_yhat, nsp_y)
         nsp_loss_final = nsp_loss.mean()

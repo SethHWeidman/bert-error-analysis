@@ -110,7 +110,7 @@ class BERTWiki2Dataset(data.Dataset):
     def _get_next_sentence(self, sentence: Sentence, next_sentence: Sentence) -> typing.Tuple:
         '''
         Helper function to return either the next sentence (passed in) or a random sentence
-        From https://d2l.ai/chapter_natural-language-processing-pretraining/bert-dataset.html 
+        From https://d2l.ai/chapter_natural-language-processing-pretraining/bert-dataset.html
         '''
         r = random.random()
         if r < 0.5:
@@ -164,7 +164,7 @@ class BERTWiki2Dataset(data.Dataset):
             inputs to the model
           * A list of positions we're going to predict
           * The original tokens from these positions. These will be used as the targets for the
-            model. 
+            model.
         '''
         # make a copy to not overwrite original
         mlm_tokens = copy.deepcopy(tokens)

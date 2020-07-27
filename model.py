@@ -20,8 +20,10 @@ class BERTModel(nn.Module):
         num_layers: int,
         dropout: float,
         max_len: int,
+        random_seed: int,
     ):
         super(BERTModel, self).__init__()
+        torch.manual_seed(random_seed)
         self.encoder = BERTEncoder(
             vocab_size,
             num_hidden,

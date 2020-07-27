@@ -31,10 +31,11 @@ if __name__ == '__main__':
         num_layers=2,
         dropout=0.2,
         max_len=max_len,
+        random_seed=RANDOM_SEED,
     )
     print("Starting to train BERTModel")
     print()
     trainer = train.BERTTrainer(
         net, train_iter, vocab, torch.optim.Adam(net.parameters(), lr=0.001), batch_size, max_len
     )
-    trainer.train_epochs(1)
+    trainer.train_epochs(50)
