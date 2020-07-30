@@ -13,9 +13,8 @@ def plot_losses() -> None:
 
     f.suptitle(
         """
-        Per batch loss from masked
-        language modeling task over batches
-        (4,321 batches / ~57 epochs)
+        Average loss per observation over batches on masked language 
+        modeling and next sentence prediction tasks (50 epochs)
         """
     )
 
@@ -30,6 +29,7 @@ def plot_losses() -> None:
     ax2.set_xlabel("Batch")
     ax2.set_title('Next sentence prediction loss over batches')
 
+    f.savefig("/Users/seth/development/bert-error-analysis/plots/loss_over_epochs.png")
     plt.show()
 
 

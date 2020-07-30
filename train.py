@@ -60,15 +60,15 @@ class BERTTrainer(object):
                 )
                 batch_losses_mlm.append(mlm_loss.item())
                 batch_losses_nsp.append(nsp_loss.item())
-                pickle.dump(
-                    batch_losses_mlm, open(os.path.join(log_folder, 'batch_losses_mlm.p'), 'wb')
-                )
-                pickle.dump(
-                    batch_losses_nsp, open(os.path.join(log_folder, 'batch_losses_nsp.p'), 'wb')
-                )
                 total_loss = mlm_loss + nsp_loss
                 total_loss.backward()
                 self.optimizer.step()
+            pickle.dump(
+                batch_losses_mlm, open(os.path.join(log_folder, 'batch_losses_mlm.p'), 'wb')
+            )
+            pickle.dump(
+                batch_losses_nsp, open(os.path.join(log_folder, 'batch_losses_nsp.p'), 'wb')
+            )
             print(f"Epoch took {time.time()-epoch_start_time:.1f} seconds")
             epoch += 1
 
