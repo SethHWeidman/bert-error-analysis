@@ -17,6 +17,7 @@ pyproject.toml
 
 # data
 wikitext-2* 
+aclImdb*
 
 # logs
 log* 
