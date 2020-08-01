@@ -18,6 +18,7 @@ pyproject.toml
 # data
 wikitext-2* 
 aclImdb*
+stanfordSentimentTreebank*
 
 # logs
 log* 
