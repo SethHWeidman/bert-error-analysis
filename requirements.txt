@@ -2,7 +2,7 @@ torch==1.5.1
 torchtext==0.6.0
 transformers==3.0.2
 
-# for specific tokenizers only 
+# for tokenizer 
 ftfy==5.8.0
 spacy==2.3.2
 

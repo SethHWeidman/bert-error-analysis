@@ -3,8 +3,10 @@ import pickle
 
 import matplotlib.pyplot as plt
 
+import const
 import train
 
+BASE_PLOT_PATH = os.path.join(const.BASE_DIR, 'plots')
 
 def plot_losses() -> None:
     mlm_losses, nsp_losses = get_most_recent_mlm_nsp_losses()
@@ -29,7 +31,7 @@ def plot_losses() -> None:
     ax2.set_xlabel("Batch")
     ax2.set_title('Next sentence prediction loss over batches')
 
-    f.savefig("/Users/seth/development/bert-error-analysis/plots/loss_over_epochs.png")
+    f.savefig(os.path.join(BASE_PLOT_PATH, "loss_over_epochs.png"))
     plt.show()
 
 

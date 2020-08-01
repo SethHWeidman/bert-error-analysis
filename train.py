@@ -10,9 +10,10 @@ from torch.utils import data as utils_data
 from torch import optim
 from torchtext import vocab
 
+import const
 import model
 
-BASE_LOG_PATH = '/Users/seth/development/bert-error-analysis/log'
+BASE_LOG_PATH = os.path.join(const.BASE_DIR, 'log')
 
 
 class BERTTrainer(object):

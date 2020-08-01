@@ -9,10 +9,20 @@ from torch.utils import data
 from torchtext import vocab
 import transformers
 
+import const
 import preprocess
 
-DATA_DIR = '/Users/seth/development/bert-error-analysis/data/wikitext-2'
-TOKENIZER = transformers.AutoTokenizer.from_pretrained('bert-base-uncased', unk_token='<unk>')
+DATA_DIR = os.path.join(const.BASE_DIR, 'data/wikitext-2')
+# https://huggingface.co/transformers/main_classes/tokenizer.html#pretrainedtokenizer
+# https://huggingface.co/transformers/model_doc/auto.html#autotokenizer
+TOKENIZER = transformers.AutoTokenizer.from_pretrained(
+    'openai-gpt',
+    unk_token='<unk>',
+    sep_token=const.SEP_TOKEN,
+    pad_token=const.PAD_TOKEN,
+    cls_token=const.CLASS_TOKEN,
+    mask_token=const.MASK_TOKEN,
+)
 
 Sentence = typing.List[str]
 Paragraph = typing.List[Sentence]
@@ -81,7 +91,7 @@ class BERTWiki2Dataset(data.Dataset):
                 counter,
                 max_size=self.max_vocab_size,
                 min_freq=5,
-                specials=['<pad>', '<mask>', '<cls>', '<sep>'],
+                specials=[const.PAD_TOKEN, '<mask>', const.CLASS_TOKEN, '<sep>'],
             ),
         )
 
@@ -133,7 +143,7 @@ class BERTWiki2Dataset(data.Dataset):
         '''
         candidate_pred_positions = []
         for i, token in enumerate(tokens):
-            if token in ['<cls>', '<sep>']:
+            if token in [const.CLASS_TOKEN, const.SEP_TOKEN]:
                 continue
             candidate_pred_positions.append(i)
         # select 15% of tokens to predict
@@ -178,7 +188,7 @@ class BERTWiki2Dataset(data.Dataset):
                 break
             r = random.random()
             if r < 0.8:
-                masked_token = '<mask>'
+                masked_token = const.MASK_TOKEN
             elif r >= 0.8 and r < 0.9:
                 masked_token = tokens[mlm_pred_position]
             else:
@@ -223,7 +233,7 @@ class BERTWiki2Dataset(data.Dataset):
             rem_pred_positions = max_num_mlm_preds - len(pred_positions)
             all_token_ids.append(
                 torch.tensor(
-                    token_ids + [self.vocab['<pad>']] * (self.max_seq_len - num_token_ids)
+                    token_ids + [self.vocab[const.PAD_TOKEN]] * (self.max_seq_len - num_token_ids)
                 )
             )
             all_segments.append(torch.tensor(segments + [0] * (self.max_seq_len - len(segments))))
