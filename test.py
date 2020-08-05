@@ -3,7 +3,7 @@ import time
 import torch
 from torch import nn
 
-from data import data
+from data import data, sentiment_analysis
 import model
 
 
@@ -56,7 +56,7 @@ if __name__ == '__main__':
     start_time = time.time()
     print("Testing data loading")
     batch_size, max_len = 512, 64
-    train_iter, vocab = data.load_wiki2_data(batch_size, max_len)
+    train_iter, vocab, tokenizer = data.load_wiki2_data(batch_size, max_len)
     for (
         tokens_X,
         segments_X,
@@ -83,6 +83,12 @@ if __name__ == '__main__':
             torch.Size([512, 10]),
             torch.Size([512]),
         )
-        assert len(vocab) == 18939
+        assert len(vocab) == 17962
         break
+    print(f"All done! Took {time.time()-start_time:.0f} seconds")
+
+    start_time = time.time()
+    print("Testing Sentiment Analysis dataset")
+    d = sentiment_analysis.SentimentAnalysisDataset(vocab, tokenizer, max_len)
+    assert len(d.examples) == 2
     print(f"All done! Took {time.time()-start_time:.0f} seconds")
