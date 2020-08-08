@@ -1,4 +1,5 @@
 import os
+from os import path
 import pickle
 
 import matplotlib.pyplot as plt
@@ -6,7 +7,8 @@ import matplotlib.pyplot as plt
 import const
 import train
 
-BASE_PLOT_PATH = os.path.join(const.BASE_DIR, 'plots')
+BASE_PLOT_PATH = path.join(const.BASE_DIR, 'plots')
+
 
 def plot_losses() -> None:
     mlm_losses, nsp_losses = get_most_recent_mlm_nsp_losses()
@@ -31,7 +33,7 @@ def plot_losses() -> None:
     ax2.set_xlabel("Batch")
     ax2.set_title('Next sentence prediction loss over batches')
 
-    f.savefig(os.path.join(BASE_PLOT_PATH, "loss_over_epochs.png"))
+    f.savefig(path.join(BASE_PLOT_PATH, "loss_over_epochs.png"))
     plt.show()
 
 
@@ -43,14 +45,12 @@ def get_most_recent_mlm_nsp_losses():
     return (
         pickle.load(
             open(
-                os.path.join(train.BASE_LOG_PATH, get_most_recent_dir(), 'batch_losses_mlm.p'),
-                'rb',
+                path.join(train.BASE_LOG_PATH, get_most_recent_dir(), 'batch_losses_mlm.p'), 'rb',
             )
         ),
         pickle.load(
             open(
-                os.path.join(train.BASE_LOG_PATH, get_most_recent_dir(), 'batch_losses_nsp.p'),
-                'rb',
+                path.join(train.BASE_LOG_PATH, get_most_recent_dir(), 'batch_losses_nsp.p'), 'rb',
             )
         ),
     )

@@ -1,34 +1,26 @@
 import copy
 import collections
-import os
+from os import path
 import random
 import typing
 
 import torch
-from torch.utils import data
+from torch.utils import data as utils_data
 from torchtext import vocab
 import transformers
 
 import const
+from data import sentiment_analysis
 import preprocess
 
-DATA_DIR = os.path.join(const.BASE_DIR, 'data/wikitext-2')
-# https://huggingface.co/transformers/main_classes/tokenizer.html#pretrainedtokenizer
-# https://huggingface.co/transformers/model_doc/auto.html#autotokenizer
-TOKENIZER = transformers.AutoTokenizer.from_pretrained(
-    'openai-gpt',
-    unk_token='<unk>',
-    sep_token=const.SEP_TOKEN,
-    pad_token=const.PAD_TOKEN,
-    cls_token=const.CLASS_TOKEN,
-    mask_token=const.MASK_TOKEN,
-)
+
+DATA_DIR = path.join(const.BASE_DIR, 'data/wikitext-2')
 
 Sentence = typing.List[str]
 Paragraph = typing.List[Sentence]
 
 
-class BERTWiki2Dataset(data.Dataset):
+class BERTWiki2Dataset(utils_data.Dataset):
     '''
     A dataset for generating the data used for the BERT model.
     Structure heavily based on
@@ -39,6 +31,16 @@ class BERTWiki2Dataset(data.Dataset):
         paragraphs = _read_wikitext_2(data_dir)
         self.max_vocab_size = max_vocab_size
         self.max_seq_len = max_seq_len
+        # https://huggingface.co/transformers/main_classes/tokenizer.html#pretrainedtokenizer
+        # https://huggingface.co/transformers/model_doc/auto.html#autotokenizer
+        self.tokenizer = transformers.AutoTokenizer.from_pretrained(
+            'openai-gpt',
+            unk_token='<unk>',
+            sep_token=const.SEP_TOKEN,
+            pad_token=const.PAD_TOKEN,
+            cls_token=const.CLASS_TOKEN,
+            mask_token=const.MASK_TOKEN,
+        )
         self.data, self.vocab = self._paragraphs_to_vocab_and_data(paragraphs)
 
         examples = []
@@ -99,7 +101,7 @@ class BERTWiki2Dataset(data.Dataset):
         '''
         Helper function to tokenize each sentence in a paragraph
         '''
-        return [TOKENIZER.tokenize(sentence) for sentence in paragraph]
+        return [self.tokenizer.tokenize(sentence) for sentence in paragraph]
 
     def _get_next_sentence_data_from_paragraph(self, paragraph: Paragraph) -> typing.List:
         '''
@@ -265,7 +267,7 @@ def _read_wikitext_2(data_dir: str) -> typing.List[Paragraph]:
     '''
     Reads in the wikitext-2 dataset into a list of "Paragraph"s: lists of lists of strings
     '''
-    filename = os.path.join(data_dir, 'wiki.train.tokens')
+    filename = path.join(data_dir, 'wiki.train.tokens')
     with open(filename, 'r') as f:
         lines = f.readlines()
 
@@ -281,5 +283,14 @@ def _read_wikitext_2(data_dir: str) -> typing.List[Paragraph]:
 def load_wiki2_data(batch_size: int, max_len: int) -> typing.Tuple:
     dataset = BERTWiki2Dataset(DATA_DIR, 50000, max_len)
     # https://pytorch.org/docs/stable/data.html
-    train_iter = data.DataLoader(dataset, batch_size=batch_size)
-    return train_iter, dataset.vocab
+    train_iter = utils_data.DataLoader(dataset, batch_size=batch_size, shuffle=True)
+    return train_iter, dataset.vocab, dataset.tokenizer
+
+
+def load_sentiment_analysis_data(
+    voc: vocab.Vocab, tokenizer: transformers.PreTrainedTokenizer, batch_size: int, max_len: int
+) -> typing.Tuple:
+    dataset = sentiment_analysis.SentimentAnalysisDataset(voc, tokenizer, max_len)
+    # https://pytorch.org/docs/stable/data.html
+    train_iter = utils_data.DataLoader(dataset, batch_size=batch_size, shuffle=True)
+    return train_iter

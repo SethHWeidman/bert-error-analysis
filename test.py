@@ -66,29 +66,26 @@ if __name__ == '__main__':
         mlm_y,
         nsp_y,
     ) in train_iter:
-        assert (
-            tokens_X.shape,
-            segments_X.shape,
-            valid_lens_X.shape,
-            pred_positions_X.shape,
-            mlm_weights_X.shape,
-            mlm_y.shape,
-            nsp_y.shape,
-        ) == (
-            torch.Size([512, 64]),
-            torch.Size([512, 64]),
-            torch.Size([512]),
-            torch.Size([512, 10]),
-            torch.Size([512, 10]),
-            torch.Size([512, 10]),
-            torch.Size([512]),
-        )
+        assert tokens_X.shape == torch.Size([512, 64])
+        assert segments_X.shape == torch.Size([512, 64])       
+        assert valid_lens_X.shape == torch.Size([512])                
+        assert pred_positions_X.shape == torch.Size([512, 10])                
+        assert mlm_weights_X.shape == torch.Size([512, 10])                        
+        assert mlm_y.shape == torch.Size([512, 10])
+        assert nsp_y.shape == torch.Size([512])
         assert len(vocab) == 17962
         break
     print(f"All done! Took {time.time()-start_time:.0f} seconds")
 
     start_time = time.time()
     print("Testing Sentiment Analysis dataset")
-    d = sentiment_analysis.SentimentAnalysisDataset(vocab, tokenizer, max_len)
-    assert len(d.examples) == 2
+    sentiment_analysis_iter = data.load_sentiment_analysis_data(
+        vocab, tokenizer, batch_size, max_len
+    )
+    for (examples_X, weights_X, segments_X, labels_y) in sentiment_analysis_iter:
+        assert examples_X.shape == torch.Size([512, 64])
+        assert weights_X.shape == torch.Size([512, 64])        
+        assert segments_X.shape == torch.Size([512, 64])    
+        assert labels_y.shape == torch.Size([512])                        
+        break
     print(f"All done! Took {time.time()-start_time:.0f} seconds")

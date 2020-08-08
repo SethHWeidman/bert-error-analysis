@@ -1,6 +1,7 @@
-import datetime
+from datetime import datetime
 import pickle
 import os
+from os import path
 import time
 import typing
 
@@ -13,7 +14,7 @@ from torchtext import vocab
 import const
 import model
 
-BASE_LOG_PATH = os.path.join(const.BASE_DIR, 'log')
+BASE_LOG_PATH = path.join(const.BASE_DIR, 'log')
 
 
 class BERTTrainer(object):
@@ -32,7 +33,7 @@ class BERTTrainer(object):
         self.optimizer = optimizer
         self.loss = nn.CrossEntropyLoss()
 
-    def train_epochs(self, epochs: int):
+    def train_epochs(self, epochs: int, nsp_mult: float = 1.0):
         log_folder = self.setup_logging()
 
         epoch = 0
@@ -61,21 +62,17 @@ class BERTTrainer(object):
                 )
                 batch_losses_mlm.append(mlm_loss.item())
                 batch_losses_nsp.append(nsp_loss.item())
-                total_loss = mlm_loss + nsp_loss
+                total_loss = mlm_loss + nsp_loss * nsp_mult
                 total_loss.backward()
                 self.optimizer.step()
-            pickle.dump(
-                batch_losses_mlm, open(os.path.join(log_folder, 'batch_losses_mlm.p'), 'wb')
-            )
-            pickle.dump(
-                batch_losses_nsp, open(os.path.join(log_folder, 'batch_losses_nsp.p'), 'wb')
-            )
+            pickle.dump(batch_losses_mlm, open(path.join(log_folder, 'batch_losses_mlm.p'), 'wb'))
+            pickle.dump(batch_losses_nsp, open(path.join(log_folder, 'batch_losses_nsp.p'), 'wb'))
             print(f"Epoch took {time.time()-epoch_start_time:.1f} seconds")
             epoch += 1
 
     def setup_logging(self) -> str:
-        now_str = str(datetime.datetime.now())
-        log_folder = os.path.join(BASE_LOG_PATH, now_str)
+        now_str = str(datetime.now())
+        log_folder = path.join(BASE_LOG_PATH, now_str)
         os.mkdir(log_folder)
         return log_folder
 

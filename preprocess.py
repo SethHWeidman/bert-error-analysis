@@ -2,6 +2,7 @@ from typing import List, Optional, Tuple
 
 import const
 
+
 def get_tokens_and_segments(tokens_a: List[str], tokens_b: Optional[List[str]] = None) -> Tuple:
     '''
     Takes in the tokens from either one sentences or two and returns the "BERT representation"

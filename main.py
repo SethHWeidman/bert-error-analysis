@@ -15,7 +15,7 @@ if __name__ == '__main__':
     print()
     start_time = time.time()
     batch_size, max_len = 512, 64
-    train_iter, vocab = data.load_wiki2_data(batch_size, max_len)
+    train_iter, vocab, _ = data.load_wiki2_data(batch_size, max_len)
     print(f"Done! Took {time.time()-start_time:.0f} seconds")
 
     # Actual BERT paper parameters:
