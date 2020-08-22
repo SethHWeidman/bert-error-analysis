@@ -8,6 +8,7 @@ import typing
 import torch
 from torch import nn
 from torch.nn import functional
+import transformers
 
 
 class BERTModel(nn.Module):
@@ -47,6 +48,19 @@ class BERTModel(nn.Module):
         mlm_yhat = None if pred_positions is None else self.mlm(encoded_X, pred_positions)
         nsp_yhat = self.nsp(encoded_X[:, 0, :])
         return encoded_X, mlm_yhat, nsp_yhat
+
+
+class BERTFineTuningModel(nn.Module):
+    def __init__(self):
+        super(BERTFineTuningModel, self).__init__()
+        self.bert_model = transformers.BertModel.from_pretrained('bert-base-uncased')
+        self.fc = nn.Linear(768, 2)
+
+    def forward(
+        self, input_ids: torch.Tensor, attention_mask: torch.Tensor, token_type_ids: torch.Tensor
+    ) -> torch.Tensor:
+        output = self.bert_model(input_ids, attention_mask, token_type_ids)[1]
+        return self.fc(output)
 
 
 class BERTEncoder(nn.Module):

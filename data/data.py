@@ -288,9 +288,15 @@ def load_wiki2_data(batch_size: int, max_len: int) -> typing.Tuple:
 
 
 def load_sentiment_analysis_data(
-    voc: vocab.Vocab, tokenizer: transformers.PreTrainedTokenizer, batch_size: int, max_len: int
+    tokenizer: transformers.PreTrainedTokenizer,
+    batch_size: int,
+    max_len: int,
+    voc: typing.Optional[vocab.Vocab] = None,
+    custom_tokenizer: bool = True,
 ) -> typing.Tuple:
-    dataset = sentiment_analysis.SentimentAnalysisDataset(voc, tokenizer, max_len)
+    dataset = sentiment_analysis.SentimentAnalysisDataset(
+        tokenizer, max_len, voc, custom_tokenizer
+    )
     # https://pytorch.org/docs/stable/data.html
     train_iter = utils_data.DataLoader(dataset, batch_size=batch_size, shuffle=True)
     return train_iter

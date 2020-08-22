@@ -17,7 +17,7 @@ def plot_losses() -> None:
 
     f.suptitle(
         """
-        Average loss per observation over batches on masked language 
+        Average loss per observation over batches on masked language
         modeling and next sentence prediction tasks (50 epochs)
         """
     )

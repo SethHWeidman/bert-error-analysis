@@ -15,7 +15,11 @@ BASE_DATA_PATH = path.join(const.BASE_DIR, 'data', 'stanfordSentimentTreebank')
 
 class SentimentAnalysisDataset(utils_data.Dataset):
     def __init__(
-        self, voc: vocab.Vocab, tokenizer: transformers.PreTrainedTokenizer, max_seq_len: int
+        self,
+        tokenizer: transformers.PreTrainedTokenizer,
+        max_seq_len: int,
+        voc: typing.Optional[vocab.Vocab] = None,
+        custom_tokenizer: bool = True,
     ) -> None:
         sentences, labels, splits = read_stanford_sentiment(BASE_DATA_PATH)
         self.sentences = sentences
@@ -30,12 +34,19 @@ class SentimentAnalysisDataset(utils_data.Dataset):
         labels = []
 
         for sentence, label in zip(self.sentences, self.labels):
-            sentence_tokens, segment_tokens = self._get_sentence_tokens(sentence)
-            (
-                sentence_tokens_tensor,
-                sentence_weights_tensor,
-                segments_tensor,
-            ) = self.get_sentence_token_tensors(sentence_tokens, segment_tokens)
+            if custom_tokenizer:
+                sentence_tokens, segment_tokens = self._get_sentence_tokens(sentence)
+                (
+                    sentence_tokens_tensor,
+                    sentence_weights_tensor,
+                    segments_tensor,
+                ) = self.get_sentence_token_tensors(sentence_tokens, segment_tokens)
+            else:
+                (
+                    sentence_tokens_tensor,
+                    sentence_weights_tensor,
+                    segments_tensor,
+                ) = self.get_sentence_token_tensors_pretrained_tokenizer(sentence)
             examples.append(sentence_tokens_tensor)
             weights.append(sentence_weights_tensor)
             segments.append(segments_tensor)
@@ -59,14 +70,26 @@ class SentimentAnalysisDataset(utils_data.Dataset):
 
     def get_sentence_token_tensors(
         self, sentence_tokens: typing.List[int], segment_tokens: typing.List[int]
-    ) -> torch.Tensor:
+    ) -> typing.Tuple[torch.Tensor]:
         sentence_length = len(sentence_tokens)
         return (
-            torch.tensor(tokens + [0] * (self.max_seq_len - sentence_length)),
+            torch.tensor(sentence_tokens + [0] * (self.max_seq_len - sentence_length)),
             torch.cat(
                 [torch.ones(sentence_length), torch.zeros(self.max_seq_len - sentence_length)]
             ),
             torch.tensor(segment_tokens + [0] * (self.max_seq_len - len(segment_tokens))),
+        )
+
+    def get_sentence_token_tensors_pretrained_tokenizer(
+        self, sentence: str
+    ) -> typing.Tuple[torch.Tensor]:
+        tokenization_result = self.tokenizer(
+            sentence, return_tensors="pt", padding='max_length', max_length=self.max_seq_len
+        )
+        return (
+            tokenization_result['input_ids'][0],
+            tokenization_result['attention_mask'][0],
+            tokenization_result['token_type_ids'][0],
         )
 
     def _get_sentence_tokens(self, sentence: str) -> typing.List[int]:
@@ -149,8 +172,5 @@ def read_stanford_sentiment(base_data_path: str) -> typing.Tuple[typing.List]:
         labels_final.append(float(label))
         splits_final.append(int(split))
 
-    print(len(sentences_final))
-    print(len(labels_final))
-    print(len(splits_final))
     assert len(sentences_final) == len(labels_final) == len(splits_final) == 11272
     return sentences_final, labels_final, splits_final

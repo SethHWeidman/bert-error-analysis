@@ -31,3 +31,4 @@ Then, to plot the loss over batches after running for 50 epochs, run:
 python plot.py
 ```
 
+https://huggingface.co/transformers/model_doc/bert.html#bertmodel

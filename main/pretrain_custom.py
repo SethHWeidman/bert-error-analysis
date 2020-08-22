@@ -36,6 +36,6 @@ if __name__ == '__main__':
     print("Starting to train BERTModel")
     print()
     trainer = train.BERTTrainer(
-        net, train_iter, vocab, torch.optim.Adam(net.parameters(), lr=0.001), batch_size, max_len
+        net, train_iter, vocab, torch.optim.Adam(net.parameters(), lr=0.001)
     )
     trainer.train_epochs(50)
