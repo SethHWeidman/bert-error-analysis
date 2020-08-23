@@ -37,20 +37,20 @@ def plot_losses() -> None:
     plt.show()
 
 
-def get_most_recent_dir() -> str:
-    return max(os.listdir(train.BASE_LOG_PATH))
+def get_most_recent_dir(folder: str) -> str:
+    return max(os.listdir(folder))
 
 
 def get_most_recent_mlm_nsp_losses():
     return (
         pickle.load(
             open(
-                path.join(train.BASE_LOG_PATH, get_most_recent_dir(), 'batch_losses_mlm.p'), 'rb',
+                path.join(train.BASE_LOG_PATH, get_most_recent_dir(train.BASE_LOG_PATH), 'batch_losses_mlm.p'), 'rb',
             )
         ),
         pickle.load(
             open(
-                path.join(train.BASE_LOG_PATH, get_most_recent_dir(), 'batch_losses_nsp.p'), 'rb',
+                path.join(train.BASE_LOG_PATH, get_most_recent_dir(train.BASE_LOG_PATH), 'batch_losses_nsp.p'), 'rb',
             )
         ),
     )

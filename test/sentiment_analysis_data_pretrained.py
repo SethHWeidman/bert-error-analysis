@@ -6,9 +6,6 @@ import transformers
 from data import data
 
 
-RANDOM_SEED = 200720
-
-
 if __name__ == '__main__':
     batch_size, max_len = 512, 80
     start_time = time.time()

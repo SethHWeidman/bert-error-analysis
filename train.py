@@ -15,6 +15,7 @@ import const
 import model
 
 BASE_LOG_PATH = path.join(const.BASE_DIR, 'log')
+BASE_MODEL_PATH = path.join(const.BASE_DIR, 'models')
 
 
 class BERTTrainer(object):
@@ -24,20 +25,25 @@ class BERTTrainer(object):
         dataloader: utils_data.DataLoader,
         vocab: vocab.Vocab,
         optimizer: optim.Optimizer,
+        training_type: typing.Optional[str] = '',
+        run_name: typing.Optional[str] = '',
     ) -> None:
         self.net = net
         self.dataloader = dataloader
         self.vocab = vocab
         self.optimizer = optimizer
         self.loss = nn.CrossEntropyLoss()
+        self.training_type = training_type
+        self.run_name = run_name
+        self.log_folder = self.setup_folder(BASE_LOG_PATH)
+        self.model_folder = self.setup_folder(BASE_MODEL_PATH)
 
     def train_epochs(self, epochs: int, nsp_mult: float = 1.0):
-        log_folder = self.setup_logging()
 
         epoch = 0
         batch_losses_mlm = []
         batch_losses_nsp = []
-        while epoch <= epochs:
+        while epoch < epochs:
             epoch_start_time = time.time()
             for (
                 tokens_X,
@@ -63,16 +69,41 @@ class BERTTrainer(object):
                 total_loss = mlm_loss + nsp_loss * nsp_mult
                 total_loss.backward()
                 self.optimizer.step()
-            pickle.dump(batch_losses_mlm, open(path.join(log_folder, 'batch_losses_mlm.p'), 'wb'))
-            pickle.dump(batch_losses_nsp, open(path.join(log_folder, 'batch_losses_nsp.p'), 'wb'))
+            pickle.dump(
+                batch_losses_mlm, open(path.join(self.log_folder, 'batch_losses_mlm.p'), 'wb')
+            )
+            pickle.dump(
+                batch_losses_nsp, open(path.join(self.log_folder, 'batch_losses_nsp.p'), 'wb')
+            )
+            torch.save(
+                self.net.state_dict(), path.join(self.model_folder, f'model_epoch_{epoch+1}')
+            )
             print(f"Epoch took {time.time()-epoch_start_time:.1f} seconds")
             epoch += 1
 
-    def setup_logging(self) -> str:
-        now_str = str(datetime.now())
-        log_folder = path.join(BASE_LOG_PATH, now_str)
-        os.mkdir(log_folder)
-        return log_folder
+    def setup_folder(self, base_path: str) -> str:
+        run_str = self.run_name if len(self.run_name) else str(datetime.now())
+        parent_folder = path.join(base_path, self.training_type)
+        if not path.isdir(parent_folder):
+            os.mkdir(parent_folder)
+        folder = path.join(parent_folder, run_str)
+        os.mkdir(folder)
+        return folder
+
+    def load_model(self, epoch_num: int) -> model.BERTModel:
+        new_model = model.BERTModel(
+            len(self.vocab),
+            num_hidden=128,
+            num_heads=2,
+            num_hidden_feed_forward=256,
+            num_layers=2,
+            dropout=0.2,
+            max_len=64,
+        )
+        new_model.load_state_dict(
+            torch.load(path.join(self.model_folder, f'model_epoch_{epoch_num}.pt'))
+        )
+        return new_model
 
     def _get_batch_loss_bert(
         self,
@@ -108,37 +139,45 @@ class BERTFineTuningTrainerFromPretrained(object):
         net: model.BERTFineTuningModel,
         dataloader: utils_data.DataLoader,
         optimizer: optim.Optimizer,
+        training_type: typing.Optional[str] = '',
+        run_name: typing.Optional[str] = '',
     ) -> None:
         self.net = net
         self.dataloader = dataloader
         self.vocab = vocab
         self.optimizer = optimizer
         self.loss = nn.CrossEntropyLoss()
+        self.training_type = training_type
+        self.run_name = run_name
+        self.log_folder = self.setup_folder(BASE_LOG_PATH)
+        self.model_folder = self.setup_folder(BASE_MODEL_PATH)
 
     def train_epochs(self, epochs: int):
-        log_folder = self.setup_logging()
-
         epoch = 0
         batch_losses = []
-        while epoch <= epochs:
+        while epoch < epochs:
             epoch_start_time = time.time()
             for (examples_X, weights_X, segments_X, labels_y) in self.dataloader:
                 self.optimizer.zero_grad()
-                print("About to run batch...")
                 batch_loss = self._get_batch_loss(examples_X, weights_X, segments_X, labels_y)
-                print(f"Done! Loss {batch_loss.item():.4f}")
                 batch_losses.append(batch_loss.item())
                 batch_loss.backward()
                 self.optimizer.step()
-            pickle.dump(batch_losses, open(path.join(log_folder, 'batch_losses_mlm.p'), 'wb'))
+            pickle.dump(batch_losses, open(path.join(self.log_folder, 'batch_losses.p'), 'wb'))
+            torch.save(
+                self.net.state_dict(), path.join(self.model_folder, f'model_epoch_{epoch+1}')
+            )
             print(f"Epoch took {time.time()-epoch_start_time:.1f} seconds")
             epoch += 1
 
-    def setup_logging(self) -> str:
-        now_str = str(datetime.now())
-        log_folder = path.join(BASE_LOG_PATH, 'fine_tuning', now_str)
-        os.mkdir(log_folder)
-        return log_folder
+    def setup_folder(self, base_path: str) -> str:
+        run_str = self.run_name if len(self.run_name) else str(datetime.now())
+        parent_folder = path.join(base_path, self.training_type)
+        if not path.isdir(parent_folder):
+            os.mkdir(parent_folder)
+        folder = path.join(parent_folder, run_str)
+        os.mkdir(folder)
+        return folder
 
     def _get_batch_loss(
         self,
@@ -149,3 +188,7 @@ class BERTFineTuningTrainerFromPretrained(object):
     ) -> typing.Tuple:
         out = self.net(tokens_X, weights_X, segments_X)
         return self.loss(out, labels_y)
+
+
+def get_most_recent_dir(folder: str) -> str:
+    return max(os.listdir(folder))

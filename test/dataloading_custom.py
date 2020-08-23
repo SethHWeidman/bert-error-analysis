@@ -5,9 +5,6 @@ import torch
 from data import data
 
 
-RANDOM_SEED = 200720
-
-
 if __name__ == '__main__':
     start_time = time.time()
     print("Testing data loading")

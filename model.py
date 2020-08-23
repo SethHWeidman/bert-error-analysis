@@ -11,6 +11,8 @@ from torch.nn import functional
 import transformers
 
 
+RANDOM_SEED = 200823
+
 class BERTModel(nn.Module):
     def __init__(
         self,
@@ -21,7 +23,7 @@ class BERTModel(nn.Module):
         num_layers: int,
         dropout: float,
         max_len: int,
-        random_seed: int,
+        random_seed: typing.Optional[int] = RANDOM_SEED,
     ):
         super(BERTModel, self).__init__()
         torch.manual_seed(random_seed)
@@ -51,8 +53,9 @@ class BERTModel(nn.Module):
 
 
 class BERTFineTuningModel(nn.Module):
-    def __init__(self):
+    def __init__(self, random_seed: int):
         super(BERTFineTuningModel, self).__init__()
+        torch.manual_seed(random_seed)
         self.bert_model = transformers.BertModel.from_pretrained('bert-base-uncased')
         self.fc = nn.Linear(768, 2)
 

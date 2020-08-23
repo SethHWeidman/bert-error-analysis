@@ -5,9 +5,6 @@ import torch
 import model
 
 
-RANDOM_SEED = 200720
-
-
 if __name__ == '__main__':
     print("Testing BERTEncoder model")
     start_time = time.time()

@@ -23,5 +23,8 @@ stanfordSentimentTreebank*
 # logs
 log* 
 
+# models
+models* 
+
 # plots
 plots* 
