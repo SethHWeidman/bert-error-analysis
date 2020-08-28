@@ -8,3 +8,6 @@ spacy==2.3.2
 
 # for plotting
 matplotlib==3.3.0
+
+# for analysis
+pandas==1.1.1
