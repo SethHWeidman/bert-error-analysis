@@ -20,8 +20,12 @@ class SentimentAnalysisDataset(utils_data.Dataset):
         max_seq_len: int,
         voc: typing.Optional[vocab.Vocab] = None,
         custom_tokenizer: bool = True,
+        split_to_use: typing.Optional[int] = None
     ) -> None:
         sentences, labels, splits = read_stanford_sentiment(BASE_DATA_PATH)
+        if split_to_use:
+            sentences = [el[0] for el in zip(sentences, splits) if el[1] == split_to_use]
+            labels = [el[0] for el in zip(labels, splits) if el[1] == split_to_use]            
         self.sentences = sentences
         self.labels = [1 if label >= 0.5 else 0 for label in labels]
         self.vocab = voc

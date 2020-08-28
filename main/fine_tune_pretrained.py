@@ -16,14 +16,14 @@ if __name__ == '__main__':
     tokenizer = transformers.BertTokenizer.from_pretrained('bert-base-uncased')
     bert_model = model.BERTFineTuningModel(RANDOM_SEED)
     sentiment_analysis_iter = data.load_sentiment_analysis_data(
-        tokenizer, batch_size, max_len, None, False
+        tokenizer, batch_size, max_len, None, False, 1
     )
     trainer = train.BERTFineTuningTrainerFromPretrained(
         bert_model,
         sentiment_analysis_iter,
         torch.optim.Adam(bert_model.parameters(), lr=0.0001),
         'fine_tune_pretrained',
-        '01_five_epoch_fine_tuning',
+        '02_five_epoch_fine_tuning_train_only',
     )
     print("Starting to train")
     trainer.train_epochs(5)

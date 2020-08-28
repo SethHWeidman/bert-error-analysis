@@ -293,10 +293,10 @@ def load_sentiment_analysis_data(
     max_len: int,
     voc: typing.Optional[vocab.Vocab] = None,
     custom_tokenizer: bool = True,
+    split_to_use: typing.Optional[int] = None
 ) -> typing.Tuple:
     dataset = sentiment_analysis.SentimentAnalysisDataset(
-        tokenizer, max_len, voc, custom_tokenizer
+        tokenizer, max_len, voc, custom_tokenizer, split_to_use
     )
     # https://pytorch.org/docs/stable/data.html
-    train_iter = utils_data.DataLoader(dataset, batch_size=batch_size, shuffle=True)
-    return train_iter
+    return utils_data.DataLoader(dataset, batch_size=batch_size, shuffle=True)
