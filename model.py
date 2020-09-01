@@ -13,6 +13,7 @@ import transformers
 
 RANDOM_SEED = 200823
 
+
 class BERTModel(nn.Module):
     def __init__(
         self,
@@ -53,11 +54,11 @@ class BERTModel(nn.Module):
 
 
 class BERTFineTuningModel(nn.Module):
-    def __init__(self, random_seed: int):
+    def __init__(self, num_class: int = 2, random_seed: int = RANDOM_SEED):
         super(BERTFineTuningModel, self).__init__()
         torch.manual_seed(random_seed)
         self.bert_model = transformers.BertModel.from_pretrained('bert-base-uncased')
-        self.fc = nn.Linear(768, 2)
+        self.fc = nn.Linear(768, num_class)
 
     def forward(
         self, input_ids: torch.Tensor, attention_mask: torch.Tensor, token_type_ids: torch.Tensor

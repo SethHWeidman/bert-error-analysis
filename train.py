@@ -176,7 +176,8 @@ class BERTFineTuningTrainerFromPretrained(object):
         if not path.isdir(parent_folder):
             os.mkdir(parent_folder)
         folder = path.join(parent_folder, run_str)
-        os.mkdir(folder)
+        if not path.isdir(folder):
+            os.mkdir(folder)
         return folder
 
     def _get_batch_loss(
