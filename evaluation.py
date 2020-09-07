@@ -11,7 +11,7 @@ from torch.utils import data as utils_data
 from transformers import BertTokenizer
 
 import const
-from data import data
+from data import data, sentiment_analysis
 import model
 import train
 
@@ -31,22 +31,18 @@ def compute_accuracy_df(
         os.mkdir(eval_dir_part)
     eval_dir_whole = path.join(eval_dir_part, training_run)
     if not path.exists(eval_dir_whole):
-        os.mkdir(eval_dir_whole)        
+        os.mkdir(eval_dir_whole)
 
     net = model.BERTFineTuningModel(2 if use_binary_labels else 3, RANDOM_SEED)
     net.load_state_dict(
         torch.load(path.join(BASE_MODEL_PATH, model_type, training_run, f'model_epoch_{epoch}'))
     )
     net.eval()
+    max_len = 80
+    tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
 
     sentiment_analysis_dataloader = data.load_sentiment_analysis_data(
-        BertTokenizer.from_pretrained('bert-base-uncased'),
-        64,
-        80,
-        None,
-        False,
-        2,
-        use_binary_labels,
+        tokenizer, 64, max_len, None, False, 2, use_binary_labels, False,
     )
 
     if use_binary_labels:
@@ -54,9 +50,15 @@ def compute_accuracy_df(
     else:
         probs_positive, labels = compute_accuracy_three_class(sentiment_analysis_dataloader, net)
 
-    pd.DataFrame({'probs': probs_positive, 'labels': labels}).to_csv(
-        path.join(eval_dir_whole, f'test_accuracy_epoch_{epoch}.csv'), index=False
+    df = pd.DataFrame({'probs': probs_positive, 'labels': labels})
+
+    dataset = sentiment_analysis.SentimentAnalysisDataset(
+        tokenizer, max_len, custom_tokenizer=False, split_to_use=2
     )
+    assert len(dataset.sentences) == df.shape[0]
+    df['sentence'] = dataset.sentences
+
+    df.to_csv(path.join(eval_dir_whole, f'test_accuracy_epoch_{epoch}.csv'), index=False)
 
 
 def compute_accuracy_two_class(dataloader: utils_data.DataLoader, net: nn.Module) -> typing.Tuple:
@@ -112,3 +114,8 @@ def return_accuracy_csv(filepath: str) -> float:
     df = df[df['labels'] != 1]
     df['preds'] = df['probs'].apply(lambda x: 2 if x > 0.5 else 0)
     return (df['preds'] == df['labels']).mean()
+
+
+compute_accuracy_df(
+    'fine_tune_pretrained_three_class', '02_five_epoch_fine_tuning_train_only_lr3e-5', 3, False
+)

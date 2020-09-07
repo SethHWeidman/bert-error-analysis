@@ -8,7 +8,7 @@ import typing
 import torch
 from torch import nn
 from torch.nn import functional
-import transformers
+from transformers import BertModel
 
 
 RANDOM_SEED = 200823
@@ -57,12 +57,14 @@ class BERTFineTuningModel(nn.Module):
     def __init__(self, num_class: int = 2, random_seed: int = RANDOM_SEED):
         super(BERTFineTuningModel, self).__init__()
         torch.manual_seed(random_seed)
-        self.bert_model = transformers.BertModel.from_pretrained('bert-base-uncased')
+        # https://huggingface.co/transformers/pretrained_models.html
+        self.bert_model = BertModel.from_pretrained('bert-base-uncased')
         self.fc = nn.Linear(768, num_class)
 
     def forward(
         self, input_ids: torch.Tensor, attention_mask: torch.Tensor, token_type_ids: torch.Tensor
     ) -> torch.Tensor:
+        # https://huggingface.co/transformers/model_doc/bert.html#bertmodel
         output = self.bert_model(input_ids, attention_mask, token_type_ids)[1]
         return self.fc(output)
 

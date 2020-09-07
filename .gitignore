@@ -31,3 +31,6 @@ plots*
 
 # eval
 eval/* 
+
+# Mac
+*.DS_Store

@@ -294,10 +294,11 @@ def load_sentiment_analysis_data(
     voc: typing.Optional[vocab.Vocab] = None,
     custom_tokenizer: bool = True,
     split_to_use: typing.Optional[int] = None,
-    use_binary_labels: bool = True
+    use_binary_labels: bool = True,
+    shuffle: bool = True
 ) -> utils_data.DataLoader:
     dataset = sentiment_analysis.SentimentAnalysisDataset(
         tokenizer, max_len, voc, custom_tokenizer, split_to_use, use_binary_labels
     )
     # https://pytorch.org/docs/stable/data.html
-    return utils_data.DataLoader(dataset, batch_size=batch_size, shuffle=True)
+    return utils_data.DataLoader(dataset, batch_size=batch_size, shuffle=shuffle)
