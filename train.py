@@ -10,6 +10,7 @@ from torch import nn
 from torch.utils import data as utils_data
 from torch import optim
 from torchtext import vocab
+from transformers import BertForSequenceClassification
 
 import const
 import model
@@ -136,7 +137,7 @@ class BERTTrainer(object):
 class BERTFineTuningTrainerFromPretrained(object):
     def __init__(
         self,
-        net: model.BERTFineTuningModel,
+        net: typing.Union[model.BERTFineTuningModel, BertForSequenceClassification],
         dataloader: utils_data.DataLoader,
         optimizer: optim.Optimizer,
         training_type: typing.Optional[str] = '',
@@ -188,6 +189,8 @@ class BERTFineTuningTrainerFromPretrained(object):
         labels_y: torch.Tensor,
     ) -> typing.Tuple:
         out = self.net(tokens_X, weights_X, segments_X)
+        if isinstance(self.net, BertForSequenceClassification):
+            out = out[0]
         return self.loss(out, labels_y)
 
 
