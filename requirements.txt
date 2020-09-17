@@ -1,6 +1,10 @@
+# modeling
 torch==1.5.1
 torchtext==0.6.0
 transformers==3.0.2
+
+# lstm only
+allennlp==1.0.0
 
 # for tokenizer 
 ftfy==5.8.0

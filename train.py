@@ -190,8 +190,10 @@ class BERTFineTuningTrainerFromPretrained(object):
     ) -> typing.Tuple:
         out = self.net(tokens_X, weights_X, segments_X)
         if isinstance(self.net, BertForSequenceClassification):
-            out = out[0]
-        return self.loss(out, labels_y)
+            return self.loss(out[0], labels_y)
+        else:
+            return self.loss(out, labels_y)
+        
 
 
 def get_most_recent_dir(folder: str) -> str:

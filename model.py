@@ -59,6 +59,7 @@ class BERTFineTuningModel(nn.Module):
         torch.manual_seed(random_seed)
         # https://huggingface.co/transformers/pretrained_models.html
         self.bert_model = BertModel.from_pretrained('bert-base-uncased')
+        self.dropout = nn.Dropout(p=0.1)
         self.fc = nn.Linear(768, num_class)
 
     def forward(
@@ -66,7 +67,7 @@ class BERTFineTuningModel(nn.Module):
     ) -> torch.Tensor:
         # https://huggingface.co/transformers/model_doc/bert.html#bertmodel
         output = self.bert_model(input_ids, attention_mask, token_type_ids)[1]
-        return self.fc(output)
+        return self.fc(self.dropout(output))
 
 
 class BERTEncoder(nn.Module):

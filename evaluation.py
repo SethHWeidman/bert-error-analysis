@@ -3,6 +3,7 @@ from os import path
 import time
 import typing
 
+from allennlp.predictors.predictor import Predictor
 import pandas as pd
 import torch
 from torch import nn
@@ -20,11 +21,13 @@ RANDOM_SEED = 200828
 
 BASE_MODEL_PATH = path.join(const.BASE_DIR, 'models')
 
-net = model.BERTFineTuningModel(RANDOM_SEED)
-
 
 def compute_accuracy_df(
-    model_type: str, training_run: str, epoch: int, use_binary_labels: bool = True
+    model_type: str,
+    training_run: str,
+    epoch: int,
+    use_binary_labels: bool = True,
+    add_lstm_preds: bool = False,
 ) -> None:
     eval_dir_part = path.join('eval', model_type)
     if not path.exists(eval_dir_part):
@@ -50,13 +53,23 @@ def compute_accuracy_df(
     else:
         probs_positive, labels = compute_accuracy_three_class(sentiment_analysis_dataloader, net)
 
-    df = pd.DataFrame({'probs': probs_positive, 'labels': labels})
+    df = pd.DataFrame(
+        {'bert_probs' if add_lstm_preds else 'probs': probs_positive, 'labels': labels}
+    )
 
     dataset = sentiment_analysis.SentimentAnalysisDataset(
         tokenizer, max_len, custom_tokenizer=False, split_to_use=2
     )
     assert len(dataset.sentences) == df.shape[0]
     df['sentence'] = dataset.sentences
+
+    if add_lstm_preds:
+        predictor_lstm = Predictor.from_path(const.LSTM_PATH)
+        preds_lstm = [
+            predictor_lstm.predict(sentence=dataset_sentence)['probs'][0]
+            for dataset_sentence in dataset.sentences
+        ]
+        df['lstm_probs'] = preds_lstm
 
     df.to_csv(path.join(eval_dir_whole, f'test_accuracy_epoch_{epoch}.csv'), index=False)
 
@@ -116,6 +129,19 @@ def return_accuracy_csv(filepath: str) -> float:
     return (df['preds'] == df['labels']).mean()
 
 
-compute_accuracy_df(
-    'fine_tune_pretrained_three_class', '02_five_epoch_fine_tuning_train_only_lr3e-5', 3, False
-)
+if __name__ == '__main__':
+    compute_accuracy_df(
+        'fine_tune_pretrained_three_class', '02_five_epoch_fine_tuning_train_only_lr5e-5', 3, False
+    )
+
+    compute_accuracy_df(
+        'fine_tune_pretrained_three_class', '02_five_epoch_fine_tuning_train_only_lr4e-5', 3, False
+    )
+
+    compute_accuracy_df(
+        'fine_tune_pretrained_three_class', '02_five_epoch_fine_tuning_train_only_lr3e-5', 3, False
+    )
+
+    compute_accuracy_df(
+        'fine_tune_pretrained_three_class', '02_five_epoch_fine_tuning_train_only_lr2e-5', 3, False
+    )
