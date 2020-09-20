@@ -8,7 +8,7 @@ import typing
 import torch
 from torch import nn
 from torch.nn import functional
-from transformers import BertModel
+from transformers import BertModel, RobertaModel
 
 
 RANDOM_SEED = 200823
@@ -67,6 +67,21 @@ class BERTFineTuningModel(nn.Module):
     ) -> torch.Tensor:
         # https://huggingface.co/transformers/model_doc/bert.html#bertmodel
         output = self.bert_model(input_ids, attention_mask, token_type_ids)[1]
+        return self.fc(self.dropout(output))
+
+
+class RobertaFineTuningModel(nn.Module):
+    def __init__(self, num_class: int = 2, random_seed: int = RANDOM_SEED):
+        super(RobertaFineTuningModel, self).__init__()
+        torch.manual_seed(random_seed)
+        # https://huggingface.co/transformers/pretrained_models.html
+        self.roberta_model = RobertaModel.from_pretrained('roberta-base')
+        self.dropout = nn.Dropout(p=0.1)
+        self.fc = nn.Linear(768, num_class)
+
+    def forward(self, input_ids: torch.Tensor, attention_mask: torch.Tensor) -> torch.Tensor:
+        # https://huggingface.co/transformers/model_doc/roberta.html#robertamodel
+        output = self.roberta_model(input_ids, attention_mask)[1]
         return self.fc(self.dropout(output))
 
 

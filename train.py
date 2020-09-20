@@ -137,7 +137,7 @@ class BERTTrainer(object):
 class BERTFineTuningTrainerFromPretrained(object):
     def __init__(
         self,
-        net: typing.Union[model.BERTFineTuningModel, BertForSequenceClassification],
+        net: typing.Union[model.BERTFineTuningModel, model.RobertaFineTuningModel],
         dataloader: utils_data.DataLoader,
         optimizer: optim.Optimizer,
         training_type: typing.Optional[str] = '',
@@ -158,9 +158,14 @@ class BERTFineTuningTrainerFromPretrained(object):
         batch_losses = []
         while epoch < epochs:
             epoch_start_time = time.time()
-            for (examples_X, weights_X, segments_X, labels_y) in self.dataloader:
+            for batch in self.dataloader:
                 self.optimizer.zero_grad()
-                batch_loss = self._get_batch_loss(examples_X, weights_X, segments_X, labels_y)
+                if isinstance(self.net, model.BERTFineTuningModel):
+                    examples_X, weights_X, segments_X, labels_y = batch
+                    batch_loss = self._get_batch_loss(examples_X, weights_X, segments_X, labels_y)
+                else:
+                    examples_X, weights_X, labels_y = batch
+                    batch_loss = self._get_batch_loss(examples_X, weights_X, None, labels_y)
                 batch_losses.append(batch_loss.item())
                 batch_loss.backward()
                 self.optimizer.step()
@@ -185,15 +190,14 @@ class BERTFineTuningTrainerFromPretrained(object):
         self,
         tokens_X: torch.Tensor,
         weights_X: torch.Tensor,
-        segments_X: torch.Tensor,
+        segments_X: typing.Optional[torch.Tensor],
         labels_y: torch.Tensor,
     ) -> typing.Tuple:
-        out = self.net(tokens_X, weights_X, segments_X)
-        if isinstance(self.net, BertForSequenceClassification):
-            return self.loss(out[0], labels_y)
+        if not segments_X:
+            out = self.net(tokens_X, weights_X)
         else:
-            return self.loss(out, labels_y)
-        
+            out = self.net(tokens_X, weights_X, segments_X)
+        return self.loss(out, labels_y)
 
 
 def get_most_recent_dir(folder: str) -> str:

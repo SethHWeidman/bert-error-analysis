@@ -5,6 +5,7 @@ import torch
 from torch.utils import data as utils_data
 from torchtext import vocab
 import transformers
+from transformers import BertTokenizer, RobertaTokenizer
 
 import const
 import preprocess
@@ -19,7 +20,6 @@ class SentimentAnalysisDataset(utils_data.Dataset):
         tokenizer: transformers.PreTrainedTokenizer,
         max_seq_len: int,
         voc: typing.Optional[vocab.Vocab] = None,
-        custom_tokenizer: bool = True,
         split_to_use: typing.Optional[int] = None,
         use_binary_labels: bool = True,
     ) -> None:
@@ -34,15 +34,19 @@ class SentimentAnalysisDataset(utils_data.Dataset):
             self.labels = [self._float_to_label(label) for label in labels]
         self.vocab = voc
         self.tokenizer = tokenizer
+        is_tokenizer_bert = isinstance(self.tokenizer, BertTokenizer)
+        self.is_tokenizer_roberta = isinstance(self.tokenizer, RobertaTokenizer)
+        is_tokenizer_custom = not (is_tokenizer_bert or self.is_tokenizer_roberta)
         self.max_seq_len = max_seq_len
 
         examples = []
         weights = []
-        segments = []
+        if is_tokenizer_bert:
+            segments = []
         labels = []
 
         for sentence, label in zip(self.sentences, self.labels):
-            if custom_tokenizer:
+            if is_tokenizer_custom:
                 sentence_tokens, segment_tokens = self._get_sentence_tokens(sentence)
                 (
                     sentence_tokens_tensor,
@@ -50,22 +54,35 @@ class SentimentAnalysisDataset(utils_data.Dataset):
                     segments_tensor,
                 ) = self.get_sentence_token_tensors(sentence_tokens, segment_tokens)
             else:
-                (
-                    sentence_tokens_tensor,
-                    sentence_weights_tensor,
-                    segments_tensor,
-                ) = self.get_sentence_token_tensors_pretrained_tokenizer(sentence)
+                tokenization_result = self.tokenizer(
+                    sentence,
+                    return_tensors="pt",
+                    padding='max_length',
+                    max_length=self.max_seq_len,
+                )
+                sentence_tokens_tensor = tokenization_result['input_ids'][0]
+                sentence_weights_tensor = tokenization_result['attention_mask'][0]
+                if is_tokenizer_bert:
+                    segments_tensor = tokenization_result['token_type_ids'][0]
             examples.append(sentence_tokens_tensor)
             weights.append(sentence_weights_tensor)
-            segments.append(segments_tensor)
+            if not self.is_tokenizer_roberta:
+                segments.append(segments_tensor)
             labels.append(torch.tensor(label, dtype=torch.int64))
 
         self.examples = examples
         self.weights = weights
-        self.segments = segments
+        if not self.is_tokenizer_roberta:
+            self.segments = segments
         self.labels = labels
 
     def __getitem__(self, idx: int) -> typing.Tuple:
+        if self.is_tokenizer_roberta:
+            return (
+                self.examples[idx],
+                self.weights[idx],
+                self.labels[idx],
+            )
         return (
             self.examples[idx],
             self.weights[idx],
@@ -94,18 +111,6 @@ class SentimentAnalysisDataset(utils_data.Dataset):
                 [torch.ones(sentence_length), torch.zeros(self.max_seq_len - sentence_length)]
             ),
             torch.tensor(segment_tokens + [0] * (self.max_seq_len - len(segment_tokens))),
-        )
-
-    def get_sentence_token_tensors_pretrained_tokenizer(
-        self, sentence: str
-    ) -> typing.Tuple[torch.Tensor]:
-        tokenization_result = self.tokenizer(
-            sentence, return_tensors="pt", padding='max_length', max_length=self.max_seq_len
-        )
-        return (
-            tokenization_result['input_ids'][0],
-            tokenization_result['attention_mask'][0],
-            tokenization_result['token_type_ids'][0],
         )
 
     def _get_sentence_tokens(self, sentence: str) -> typing.List[int]:

@@ -9,7 +9,7 @@ import torch
 from torch import nn
 from torch.nn import functional
 from torch.utils import data as utils_data
-from transformers import BertTokenizer
+from transformers import BertTokenizer, RobertaTokenizer
 
 import const
 from data import data, sentiment_analysis
@@ -28,6 +28,7 @@ def compute_accuracy_df(
     epoch: int,
     use_binary_labels: bool = True,
     add_lstm_preds: bool = False,
+    use_roberta: bool = False,
 ) -> None:
     eval_dir_part = path.join('eval', model_type)
     if not path.exists(eval_dir_part):
@@ -36,30 +37,36 @@ def compute_accuracy_df(
     if not path.exists(eval_dir_whole):
         os.mkdir(eval_dir_whole)
 
-    net = model.BERTFineTuningModel(2 if use_binary_labels else 3, RANDOM_SEED)
+    if not use_roberta:
+        net = model.BERTFineTuningModel(2 if use_binary_labels else 3, RANDOM_SEED)
+    else:
+        net = model.RobertaFineTuningModel(2 if use_binary_labels else 3, RANDOM_SEED)
     net.load_state_dict(
         torch.load(path.join(BASE_MODEL_PATH, model_type, training_run, f'model_epoch_{epoch}'))
     )
     net.eval()
     max_len = 80
-    tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
+    tokenizer = (
+        BertTokenizer.from_pretrained('bert-base-uncased')
+        if not use_roberta
+        else RobertaTokenizer.from_pretrained('roberta-base')
+    )
 
     sentiment_analysis_dataloader = data.load_sentiment_analysis_data(
-        tokenizer, 64, max_len, None, False, 2, use_binary_labels, False,
+        tokenizer, 64, max_len, None, 2, use_binary_labels, False,
     )
 
     if use_binary_labels:
         probs_positive, labels = compute_accuracy_two_class(sentiment_analysis_dataloader, net)
     else:
-        probs_positive, labels = compute_accuracy_three_class(sentiment_analysis_dataloader, net)
+        probs_positive, labels = compute_accuracy_three_class(
+            sentiment_analysis_dataloader, net, use_roberta
+        )
 
-    df = pd.DataFrame(
-        {'bert_probs' if add_lstm_preds else 'probs': probs_positive, 'labels': labels}
-    )
+    probs_str = 'bert_probs' if not use_roberta else 'roberta_probs'
+    df = pd.DataFrame({probs_str if add_lstm_preds else 'probs': probs_positive, 'labels': labels})
 
-    dataset = sentiment_analysis.SentimentAnalysisDataset(
-        tokenizer, max_len, custom_tokenizer=False, split_to_use=2
-    )
+    dataset = sentiment_analysis.SentimentAnalysisDataset(tokenizer, max_len, split_to_use=2)
     assert len(dataset.sentences) == df.shape[0]
     df['sentence'] = dataset.sentences
 
@@ -90,12 +97,17 @@ def compute_accuracy_two_class(dataloader: utils_data.DataLoader, net: nn.Module
 
 
 def compute_accuracy_three_class(
-    dataloader: utils_data.DataLoader, net: nn.Module
+    dataloader: utils_data.DataLoader, net: nn.Module, use_roberta: bool = False
 ) -> typing.Tuple:
     probs_positive = []
     labels = []
-    for (examples_X, weights_X, segments_X, labels_y) in dataloader:
-        res = net(examples_X, weights_X, segments_X)
+    for batch in dataloader:
+        if not use_roberta:
+            examples_X, weights_X, segments_X, labels_y = batch
+            res = net(examples_X, weights_X, segments_X)
+        else:
+            examples_X, weights_X, labels_y = batch
+            res = net(examples_X, weights_X)
         pos_predictions = model_res_to_final_pos_preds(res)
         probs_positive.append(pos_predictions)
         labels.append(labels_y)
@@ -131,17 +143,22 @@ def return_accuracy_csv(filepath: str) -> float:
 
 if __name__ == '__main__':
     compute_accuracy_df(
-        'fine_tune_pretrained_three_class', '02_five_epoch_fine_tuning_train_only_lr5e-5', 3, False
+        'roberta_fine_tune_pretrained_three_class',
+        '01_five_epoch_fine_tuning_train_only_lr5e-5',
+        3,
+        False,
+        True,
+        True,
     )
 
-    compute_accuracy_df(
-        'fine_tune_pretrained_three_class', '02_five_epoch_fine_tuning_train_only_lr4e-5', 3, False
-    )
+    # compute_accuracy_df(
+    #     'fine_tune_pretrained_three_class', '02_five_epoch_fine_tuning_train_only_lr4e-5', 3, False
+    # )
 
-    compute_accuracy_df(
-        'fine_tune_pretrained_three_class', '02_five_epoch_fine_tuning_train_only_lr3e-5', 3, False
-    )
+    # compute_accuracy_df(
+    #     'fine_tune_pretrained_three_class', '02_five_epoch_fine_tuning_train_only_lr3e-5', 3, False
+    # )
 
-    compute_accuracy_df(
-        'fine_tune_pretrained_three_class', '02_five_epoch_fine_tuning_train_only_lr2e-5', 3, False
-    )
+    # compute_accuracy_df(
+    #     'fine_tune_pretrained_three_class', '02_five_epoch_fine_tuning_train_only_lr2e-5', 3, False
+    # )
