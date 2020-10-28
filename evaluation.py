@@ -1,6 +1,5 @@
 import os
 from os import path
-import time
 import typing
 
 from allennlp.predictors.predictor import Predictor
@@ -14,7 +13,6 @@ from transformers import BertTokenizer, RobertaTokenizer
 import const
 from data import data, sentiment_analysis
 import model
-import train
 
 
 RANDOM_SEED = 200828
@@ -45,13 +43,13 @@ def compute_accuracy_df(
         torch.load(path.join(BASE_MODEL_PATH, model_type, training_run, f'model_epoch_{epoch}'))
     )
     net.eval()
-    max_len = 80
     tokenizer = (
         BertTokenizer.from_pretrained('bert-base-uncased')
         if not use_roberta
         else RobertaTokenizer.from_pretrained('roberta-base')
     )
 
+    max_len = 80 if not use_roberta else 63
     sentiment_analysis_dataloader = data.load_sentiment_analysis_data(
         tokenizer, 64, max_len, None, 2, use_binary_labels, False,
     )
@@ -142,23 +140,29 @@ def return_accuracy_csv(filepath: str) -> float:
 
 
 if __name__ == '__main__':
+    # compute_accuracy_df(
+    #     'roberta_fine_tune_pretrained_three_class',
+    #     '01_five_epoch_fine_tuning_train_only_lr2e-5_bs16',
+    #     1,
+    #     False,
+    #     True,
+    #     True,
+    # )
+
+    # compute_accuracy_df(
+    #     'roberta_fine_tune_pretrained_three_class',
+    #     '01_five_epoch_fine_tuning_train_only_lr2e-5_bs16',
+    #     2,
+    #     False,
+    #     True,
+    #     True,
+    # )
+
     compute_accuracy_df(
         'roberta_fine_tune_pretrained_three_class',
-        '01_five_epoch_fine_tuning_train_only_lr5e-5',
-        3,
+        '01_five_epoch_fine_tuning_train_only_lr2e-5_bs16',
+        4,
         False,
         True,
         True,
     )
-
-    # compute_accuracy_df(
-    #     'fine_tune_pretrained_three_class', '02_five_epoch_fine_tuning_train_only_lr4e-5', 3, False
-    # )
-
-    # compute_accuracy_df(
-    #     'fine_tune_pretrained_three_class', '02_five_epoch_fine_tuning_train_only_lr3e-5', 3, False
-    # )
-
-    # compute_accuracy_df(
-    #     'fine_tune_pretrained_three_class', '02_five_epoch_fine_tuning_train_only_lr2e-5', 3, False
-    # )

@@ -7,7 +7,7 @@ import train
 
 
 if __name__ == '__main__':
-    batch_size = 32
+    batch_size = 16
 
     # print("Loading in pre-trained BERT model")
     # tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
@@ -35,9 +35,9 @@ if __name__ == '__main__':
     trainer = train.BERTFineTuningTrainerFromPretrained(
         roberta_model,
         sentiment_analysis_dataloader,
-        torch.optim.Adam(roberta_model.parameters(), lr=5e-5),
+        torch.optim.Adam(roberta_model.parameters(), lr=2e-5),
         'roberta_fine_tune_pretrained_three_class',
-        '01_five_epoch_fine_tuning_train_only_lr5e-5',
+        '01_five_epoch_fine_tuning_train_only_lr2e-5_bs16',
     )
     print("Starting to train")
     trainer.train_epochs(5)

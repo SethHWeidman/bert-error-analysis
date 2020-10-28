@@ -10,7 +10,6 @@ from torch import nn
 from torch.utils import data as utils_data
 from torch import optim
 from torchtext import vocab
-from transformers import BertForSequenceClassification
 
 import const
 import model
